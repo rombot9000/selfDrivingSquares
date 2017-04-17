@@ -1,6 +1,13 @@
 import numpy as np
-import random
-import copy
+from random import randint
+from copy import copy, deepcopy
+from enum import Enum
+
+class dataType(Enum):
+    center         = 1
+    edges          = 2
+    steeringEdge   = 3
+    targetPosition = 4
 
 class Rectangle:
     def __init__(self):
@@ -9,24 +16,22 @@ class Rectangle:
         self.radius     = 0.5*np.sqrt(self.width*self.width + self.length*self.length)
         self.center     = np.array([0.0, 0.0])
         self.trajectory = {}
-        self.trajectory['center']         = []
-        self.trajectory['edges']          = []
-        self.trajectory['steeringEdge']   = []
-        self.trajectory['targetPosition'] = []
+        for key in dataType:
+            self.trajectory[key] = []
         self.direction      = np.array([1.0, 0.0])
         self.steeringAngle  = 0.0
         self.edges          = [[None,None],[None,None]]
         self.calculateEdges()
         self.velocity       = 1
         self.dt             = 0.5
-        self.targetPosition = np.array([random.randint(-100,100),random.randint(-100,100)])
+        self.targetPosition = np.array([randint(-100,100),randint(-100,100)])
         self.targetCounter  = 0
         #
         #
         #
-        self.trajectory['center'].append(copy.deepcopy(self.center))
-        self.trajectory['edges'].append(copy.deepcopy(self.edges))
-        self.trajectory['targetPosition'].append(copy.deepcopy(self.targetPosition))
+        self.trajectory[dataType.center].append(deepcopy(self.center))
+        self.trajectory[dataType.edges].append(deepcopy(self.edges))
+        self.trajectory[dataType.targetPosition].append(deepcopy(self.targetPosition))
     
     # -------------------------
     # Main task to for movement
@@ -43,8 +48,8 @@ class Rectangle:
             self.checkTarget()
             t += self.dt
         if not np.isnan(self.center[0]):
-            self.trajectory['center'].append(self.center)
-            self.trajectory['edges'].append(copy.deepcopy(self.edges))
+            self.trajectory[dataType.center].append(self.center)
+            self.trajectory[dataType.edges].append(deepcopy(self.edges))
     
     # ------------------------------------
     # Auxilliary functions for calculating
@@ -96,7 +101,7 @@ class Rectangle:
             self.edges[0][1] = self.edges[0][0] + self.width*orthogonalDirectionLR
             self.edges[1][1] = self.edges[1][0] + self.width*orthogonalDirectionLR
             if not np.isnan(self.edges[0][0][0]):
-                self.trajectory['steeringEdge'].append(copy.copy(self.edges[0][0]))
+                self.trajectory[dataType.steeringEdge].append(copy(self.edges[0][0]))
         else:
             self.calculateEdgeRotation(timeSpan, self.edges[0][1], self.edges[1][1])
             ##Calculate remaining edges
@@ -105,7 +110,7 @@ class Rectangle:
             self.edges[0][0] = self.edges[0][1] + self.width*orthogonalDirectionRL
             self.edges[1][0] = self.edges[1][1] + self.width*orthogonalDirectionRL
             if not np.isnan(self.edges[0][1][0]):
-                self.trajectory['steeringEdge'].append(copy.copy(self.edges[0][1]))
+                self.trajectory[dataType.steeringEdge].append(copy(self.edges[0][1]))
     
     def calculateEdgeRotation(self, timeSpan, frontEdge, backEdge):
         backEdge += self.velocity*timeSpan*self.direction
@@ -126,6 +131,6 @@ class Rectangle:
         distanceToTarget = np.linalg.norm(self.targetPosition - self.center)
         if distanceToTarget < self.radius:
             print("Target position reached!\n")
-            self.targetPosition = np.array([random.randint(-100,100),random.randint(-100,100)])
-            self.trajectory['targetPosition'].append(copy.deepcopy(self.targetPosition))
+            self.targetPosition = np.array([randint(-100,100),randint(-100,100)])
+            self.trajectory[dataType.targetPosition].append(deepcopy(self.targetPosition))
             self.targetCounter += 1

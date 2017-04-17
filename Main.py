@@ -1,6 +1,6 @@
 #!/opt/local/bin/python3.5
 
-from selfDriving.Rectangle import Rectangle as selfDrivingRectangle
+from selfDriving.Rectangle import Rectangle, dataType
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Polygon
@@ -8,7 +8,7 @@ from matplotlib.animation import FuncAnimation, FFMpegWriter
 
 def update(i):
     for j in range(0, numberOfRectangles):
-        edges = listOfRectangles[j].trajectory['edges'][i]
+        edges = listOfRectangles[j].trajectory[dataType.edges][i]
         plgn[j].set_xy([edges[0][0], edges[0][1], edges[1][1], edges[1][0]])
 
 if __name__ == "__main__":
@@ -18,7 +18,7 @@ if __name__ == "__main__":
     listOfRectangles = []
     numberOfRectangles = 10
     for i in range(0,numberOfRectangles):
-        listOfRectangles.append(selfDrivingRectangle())
+        listOfRectangles.append(Rectangle())
     reactionTime = 4
     while listOfRectangles[0].targetCounter < 4:
         for rectangle in listOfRectangles:
@@ -32,10 +32,10 @@ if __name__ == "__main__":
     ax.axis([-100,100,-100,100])
     plgn = []
     for rectangle in listOfRectangles:
-        edges = rectangle.trajectory['edges'][0]
+        edges = rectangle.trajectory[dataType.edges][0]
         plgn.append(ax.add_patch(Polygon([edges[0][0], edges[0][1], edges[1][1], edges[1][0]], closed=True, fill=False)))
-        ax.plot(*zip(*rectangle.trajectory['center']))        
-    anim = FuncAnimation(fig, update, frames=np.arange(0, len(listOfRectangles[0].trajectory['edges'])), interval=100)
+        ax.plot(*zip(*rectangle.trajectory[dataType.center]))        
+    anim = FuncAnimation(fig, update, frames=np.arange(0, len(listOfRectangles[0].trajectory[dataType.center])), interval=100)
     plt.show()
     
     # Raises error -> use show() for now
