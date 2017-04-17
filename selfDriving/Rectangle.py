@@ -1,55 +1,31 @@
+from .Shape import Shape, dataType
 import numpy as np
 from random import randint
 from copy import copy, deepcopy
-from enum import Enum
 
-class dataType(Enum):
-    center         = 1
-    edges          = 2
-    steeringEdge   = 3
-    targetPosition = 4
-
-class Rectangle:
+class Rectangle(Shape):
     def __init__(self):
-        self.width      = 1.0
-        self.length     = 3.0
+        self.width      = 3.0
+        self.length     = 9.0
         self.radius     = 0.5*np.sqrt(self.width*self.width + self.length*self.length)
-        self.center     = np.array([0.0, 0.0])
-        self.trajectory = {}
-        for key in dataType:
-            self.trajectory[key] = []
-        self.direction      = np.array([1.0, 0.0])
+        Shape.__init__(self)
         self.steeringAngle  = 0.0
-        self.edges          = [[None,None],[None,None]]
-        self.calculateEdges()
         self.velocity       = 1
-        self.dt             = 0.5
-        self.targetPosition = np.array([randint(-100,100),randint(-100,100)])
         self.targetCounter  = 0
-        #
-        #
-        #
-        self.trajectory[dataType.center].append(deepcopy(self.center))
-        self.trajectory[dataType.edges].append(deepcopy(self.edges))
-        self.trajectory[dataType.targetPosition].append(deepcopy(self.targetPosition))
     
     # -------------------------
     # Main task to for movement
     # -------------------------
     def run(self, timeSpan):
-        #self.calculateEdges()
-        #print(self.edges[0][0], self.edges[0][1])
-        #print(self.edges[1][0], self.edges[1][1])
         self.steer()
         t = 0.0
-        while t < (timeSpan - 0.5*self.dt):
-            self.moveEdges(self.dt)
+        while t < (timeSpan - 0.5*self.timeStep):
+            self.moveEdges(self.timeStep)
             self.calculateCenter()
             self.checkTarget()
-            t += self.dt
-        if not np.isnan(self.center[0]):
-            self.trajectory[dataType.center].append(self.center)
-            self.trajectory[dataType.edges].append(deepcopy(self.edges))
+            t += self.timeStep
+            self.checkForCollisions()
+        self.addToTrajectory()
     
     # ------------------------------------
     # Auxilliary functions for calculating
@@ -77,7 +53,7 @@ class Rectangle:
     # Calculate steering angle depending on object and target position
     # ----------------------------------------------------------------
     def steer(self):
-        targetVector = self.targetPosition - self.center
+        targetVector = self.target - self.center
         theta = (np.arctan2(targetVector[1], targetVector[0]) - np.arctan2(self.direction[1], self.direction[0]))
         #print(theta)
         #restrict angles to [+30,-30]
@@ -100,8 +76,6 @@ class Rectangle:
             orthogonalDirectionLR = np.array([self.direction[1], -self.direction[0]])
             self.edges[0][1] = self.edges[0][0] + self.width*orthogonalDirectionLR
             self.edges[1][1] = self.edges[1][0] + self.width*orthogonalDirectionLR
-            if not np.isnan(self.edges[0][0][0]):
-                self.trajectory[dataType.steeringEdge].append(copy(self.edges[0][0]))
         else:
             self.calculateEdgeRotation(timeSpan, self.edges[0][1], self.edges[1][1])
             ##Calculate remaining edges
@@ -109,8 +83,7 @@ class Rectangle:
             orthogonalDirectionRL = np.array([-self.direction[1], self.direction[0]])
             self.edges[0][0] = self.edges[0][1] + self.width*orthogonalDirectionRL
             self.edges[1][0] = self.edges[1][1] + self.width*orthogonalDirectionRL
-            if not np.isnan(self.edges[0][1][0]):
-                self.trajectory[dataType.steeringEdge].append(copy(self.edges[0][1]))
+            
     
     def calculateEdgeRotation(self, timeSpan, frontEdge, backEdge):
         backEdge += self.velocity*timeSpan*self.direction
@@ -123,14 +96,4 @@ class Rectangle:
             sqrtTerm = 0.0
         alpha = - p + sqrtTerm
         frontEdge += alpha * steeringDirection
-    
-    # --------------------------------
-    # Calculate hitbox, colisions, etc
-    # --------------------------------
-    def checkTarget(self):
-        distanceToTarget = np.linalg.norm(self.targetPosition - self.center)
-        if distanceToTarget < self.radius:
-            print("Target position reached!\n")
-            self.targetPosition = np.array([randint(-100,100),randint(-100,100)])
-            self.trajectory[dataType.targetPosition].append(deepcopy(self.targetPosition))
-            self.targetCounter += 1
+        

@@ -1,6 +1,7 @@
 #!/opt/local/bin/python3.5
 
-from selfDriving.Rectangle import Rectangle, dataType
+from selfDriving.Shape import dataType
+from selfDriving.Rectangle import Rectangle
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Polygon
@@ -16,7 +17,7 @@ if __name__ == "__main__":
     # Calculate single trajectory
     # ---------------------------
     listOfRectangles = []
-    numberOfRectangles = 10
+    numberOfRectangles = 2
     for i in range(0,numberOfRectangles):
         listOfRectangles.append(Rectangle())
     reactionTime = 4
