@@ -44,6 +44,7 @@ class Rectangle(Shape):
         # |     |
         # 10---11
         orthogonalDirectionLR = np.array([self.direction[1], -self.direction[0]])
+        self.edges = [[None, None], [None, None]]
         self.edges[0][0] = self.center + 0.5*self.length*self.direction - 0.5*self.width*orthogonalDirectionLR
         self.edges[0][1] = self.edges[0][0] + self.width*orthogonalDirectionLR
         self.edges[1][0] = self.edges[0][0] - self.length*self.direction

@@ -8,22 +8,31 @@ from matplotlib.patches import Polygon
 from matplotlib.animation import FuncAnimation, FFMpegWriter
 
 def update(i):
+    reactionTime = 2
+    for rectangle in listOfRectangles:
+        rectangle.run(reactionTime)
     for j in range(0, numberOfRectangles):
-        edges = listOfRectangles[j].trajectory[dataType.edges][i]
+        rectangle = listOfRectangles[j]
+        edges = rectangle.trajectory[dataType.edges][-1]
         plgn[j].set_xy([edges[0][0], edges[0][1], edges[1][1], edges[1][0]])
+        plts[j][0].set_data(*zip(*rectangle.trajectory[dataType.center]))
+        trgt[j].set_offsets([rectangle.target[0], rectangle.target[1]])
+
+def setup():
+    for rectangle in listOfRectangles:
+        edges = rectangle.trajectory[dataType.edges][0]
+        plgn.append(ax.add_patch(Polygon([edges[0][0], edges[0][1], edges[1][1], edges[1][0]], closed=True, fill=True, color = rectangle.color)))
+        plts.append(ax.plot(*zip(*rectangle.trajectory[dataType.center]), color=rectangle.color, linestyle='dotted'))
+        trgt.append(ax.scatter(rectangle.target[0], rectangle.target[1], color=rectangle.color, marker='x'))  
 
 if __name__ == "__main__":
     # ---------------------------
     # Calculate single trajectory
     # ---------------------------
     listOfRectangles = []
-    numberOfRectangles = 2
+    numberOfRectangles = 4
     for i in range(0,numberOfRectangles):
         listOfRectangles.append(Rectangle())
-    reactionTime = 4
-    while listOfRectangles[0].targetCounter < 4:
-        for rectangle in listOfRectangles:
-            rectangle.run(reactionTime)
     # ----------------------------
     # Show animation of trajectory
     # ----------------------------
@@ -32,11 +41,10 @@ if __name__ == "__main__":
     ax.set_aspect(1)
     ax.axis([-100,100,-100,100])
     plgn = []
-    for rectangle in listOfRectangles:
-        edges = rectangle.trajectory[dataType.edges][0]
-        plgn.append(ax.add_patch(Polygon([edges[0][0], edges[0][1], edges[1][1], edges[1][0]], closed=True, fill=False)))
-        ax.plot(*zip(*rectangle.trajectory[dataType.center]))        
-    anim = FuncAnimation(fig, update, frames=np.arange(0, len(listOfRectangles[0].trajectory[dataType.center])), interval=100)
+    plts = []
+    trgt = [] 
+    setup()
+    anim = FuncAnimation(fig, update, None, interval=100)
     plt.show()
     
     # Raises error -> use show() for now

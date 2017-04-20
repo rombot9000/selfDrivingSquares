@@ -3,12 +3,11 @@ from random import randint
 from enum import Enum
 from copy import copy, deepcopy
 
-
 class dataType(Enum):
     center         = 1
     edges          = 2
     steeringEdge   = 3
-    target = 4
+    target         = 4
 
 class Shape:
     listOfAllShapes = []
@@ -24,13 +23,19 @@ class Shape:
         self.center    = np.array([randint(-100,100),randint(-100,100)])
         self.direction = np.array([randint(-100,100),randint(-100,100)])
         self.direction = self.direction / np.linalg.norm(self.direction)
-        self.edges          = [[None,None],[None,None]]
+        self.edges     = None
         self.calculateEdges()
         self.target    = np.array([randint(-100,100),randint(-100,100)])
         self.trajectory = {}
         for key in dataType:
             self.trajectory[key] = []
         self.addToTrajectory()
+        #
+        # Set color of shape
+        #
+        self.color = '#{:06x}'.format(randint(0, 0xFFFFFF))
+        print(self.color)
+
     
     def addToTrajectory(self):
         self.trajectory[dataType.center].append(deepcopy(self.center))
