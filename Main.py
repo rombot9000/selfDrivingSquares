@@ -8,21 +8,19 @@ from matplotlib.patches import Polygon
 from matplotlib.animation import FuncAnimation, FFMpegWriter
 
 def update(i):
-    reactionTime = 2
+    reactionTime = 1
     for rectangle in listOfRectangles:
         rectangle.run(reactionTime)
     for j in range(0, numberOfRectangles):
         rectangle = listOfRectangles[j]
-        edges = rectangle.trajectory[dataType.edges][-1]
-        plgn[j].set_xy([edges[0][0], edges[0][1], edges[1][1], edges[1][0]])
+        plgn[j].set_xy([rectangle.edges[0][0], rectangle.edges[0][1], rectangle.edges[1][1], rectangle.edges[1][0]])
         plts[j][0].set_data(*zip(*rectangle.trajectory[dataType.center]))
         trgt[j].set_offsets([rectangle.target[0], rectangle.target[1]])
 
 def setup():
     for rectangle in listOfRectangles:
-        edges = rectangle.trajectory[dataType.edges][0]
-        plgn.append(ax.add_patch(Polygon([edges[0][0], edges[0][1], edges[1][1], edges[1][0]], closed=True, fill=True, color = rectangle.color)))
-        plts.append(ax.plot(*zip(*rectangle.trajectory[dataType.center]), color=rectangle.color, linestyle='dotted'))
+        plgn.append(ax.add_patch(Polygon([rectangle.edges[0][0], rectangle.edges[0][1], rectangle.edges[1][1], rectangle.edges[1][0]], closed=True, fill=True, color = rectangle.color)))
+        plts.append(ax.plot(*zip(*rectangle.trajectory[dataType.center]), color=rectangle.color, linestyle='dotted', alpha=0.25))
         trgt.append(ax.scatter(rectangle.target[0], rectangle.target[1], color=rectangle.color, marker='x'))  
 
 if __name__ == "__main__":
@@ -39,7 +37,8 @@ if __name__ == "__main__":
     fig = plt.figure()
     ax  = fig.add_subplot(111)
     ax.set_aspect(1)
-    ax.axis([-100,100,-100,100])
+    ax.axis([-150,150,-150,150])
+    ax.set_axis_off()
     plgn = []
     plts = []
     trgt = [] 

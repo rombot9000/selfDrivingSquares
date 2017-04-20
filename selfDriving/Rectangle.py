@@ -10,6 +10,7 @@ class Rectangle(Shape):
         self.radius     = 0.5*np.sqrt(self.width*self.width + self.length*self.length)
         Shape.__init__(self)
         self.steeringAngle  = 0.0
+        self.performUTurn   = False
         self.velocity       = 1
         self.targetCounter  = 0
     
@@ -56,7 +57,13 @@ class Rectangle(Shape):
     def steer(self):
         targetVector = self.target - self.center
         theta = (np.arctan2(targetVector[1], targetVector[0]) - np.arctan2(self.direction[1], self.direction[0]))
-        #print(theta)
+        #check if rectangle has to do a u-turn
+        if self.performUTurn and abs(theta) > np.pi/6.0:
+            return
+        elif abs(theta) > np.pi/2.0:
+            self.performUTurn = True
+        else:
+            self.performUTurn = False
         #restrict angles to [+30,-30]
         if theta > np.pi/6.0:
             theta = np.pi/6.0
