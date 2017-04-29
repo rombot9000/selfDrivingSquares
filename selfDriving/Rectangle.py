@@ -1,6 +1,5 @@
 from .Shape import Shape, dataType
 import numpy as np
-from random import randint
 from copy import copy, deepcopy
 
 class Rectangle(Shape):
@@ -11,7 +10,6 @@ class Rectangle(Shape):
         Shape.__init__(self)
         self.steeringAngle  = 0.0
         self.performUTurn   = False
-        self.velocity       = randint(4,7)
         self.targetCounter  = 0
     
     # -------------------------
@@ -71,8 +69,34 @@ class Rectangle(Shape):
         elif theta < -np.pi/6.0:
             theta = -np.pi/6.0
         self.steeringAngle = theta
+        self.adjustAngleForObstacles()
         self.rotationMatrix = np.array([[np.cos(theta), -np.sin(theta)],[np.sin(theta), np.cos(theta)]])
     
+    def adjustAngleForObstacles(self):
+        for obstacle in self.listOfObstacles:
+            smallestDistance, projectedTime = self.projectSmallestDistance(obstacle)
+            if smallestDistance < 2.0 * self.radius:
+                print("Possible collision in {} seconds".format(projectedTime))
+    
+    def projectSmallestDistance(self, obstacle):
+        # Relative velocity dV
+        dV = self.velocity * self.direction - obstacle.velocity
+        dVdV = np.dot(dV, dV)
+        # Check if the relative velocity is finite
+        if dVdV == 0:
+            return np.inf, np.inf
+        # Current distance vector
+        d0 = self.center - obstacle.center
+        # Getting minimum of distance as a function of time yields the following:
+        # t_min = dV*d0 / |dV|^2
+        # Check if t_min > 0
+        tMin = - np.dot(dV, d0) / dVdV
+        if tMin < 0:
+            return np.inf, tMin
+        # Return minumum distance
+        dMin = d0 + tMin * dV
+        return np.linalg.norm(dMin), tMin
+
     # ------------------------------------------------------------
     # Calculate movement of object for given timeSpan
     # depending on steeringAngle, current velocity, direction, etc
