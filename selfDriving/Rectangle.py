@@ -11,21 +11,22 @@ class Rectangle(Shape):
         Shape.__init__(self)
         self.steeringAngle  = 0.0
         self.performUTurn   = False
-        self.velocity       = 1
+        self.velocity       = randint(4,7)
         self.targetCounter  = 0
     
     # -------------------------
     # Main task to for movement
     # -------------------------
     def run(self, timeSpan):
-        self.steer()
-        t = 0.0
-        while t < (timeSpan - 0.5*self.timeStep):
-            self.moveEdges(self.timeStep)
-            self.calculateCenter()
-            self.checkTarget()
-            t += self.timeStep
-            self.checkForCollisions()
+        if self.isMoving:
+            self.steer()
+            t = 0.0
+            while t < (timeSpan - 0.5*self.timeStep):
+                self.moveEdges(self.timeStep)
+                self.calculateCenter()
+                self.checkTarget()
+                t += self.timeStep
+                self.checkForObstacles()
         self.addToTrajectory()
     
     # ------------------------------------
@@ -104,4 +105,8 @@ class Rectangle(Shape):
             sqrtTerm = 0.0
         alpha = - p + sqrtTerm
         frontEdge += alpha * steeringDirection
-        
+    
+    # --------------
+    # Evasive action
+    # --------------
+    

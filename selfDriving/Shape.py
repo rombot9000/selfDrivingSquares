@@ -1,3 +1,4 @@
+from collections import namedtuple
 import numpy as np
 from random import randint
 from enum import Enum
@@ -9,9 +10,11 @@ class dataType(Enum):
     steeringEdge   = 3
     target         = 4
 
+obstacle = namedtuple('Obstacle', ['distance', 'angle'])
+
 class Shape:
     listOfAllShapes = []
-    timeStep        = 0.5
+    timeStep        = 0.05
     def __init__(self):
         #
         # Append instance of shape to list of shapes
@@ -30,6 +33,11 @@ class Shape:
         for key in dataType:
             self.trajectory[key] = []
         self.addToTrajectory()
+        #
+        # Members for handling collisions etc
+        #
+        self.listOfObstacles = []
+        self.isMoving        = True
         #
         # Set color of shape
         #
@@ -53,10 +61,24 @@ class Shape:
             self.trajectory[dataType.target].append(deepcopy(self.target))
             self.targetCounter += 1
     
-    def checkForCollisions(self):
+    def checkForCollisions(self, shape):
+        print('Collision!')
+        shape.stop()
+        self.stop()
+    
+    def checkForObstacles(self):
+        self.listOfObstacles = []
+        scanningRange = 30
         for shape in self.listOfAllShapes:
             if shape is self:
                 continue
             distance = np.linalg.norm(self.center - shape.center)
             if distance < (self.radius + shape.radius):
-                print("Collision!")
+                self.checkForCollisions(shape)
+            elif distance < scanningRange:
+                relativeVector = shape.center - self.center
+                angle = (np.arctan2(relativeVector[1], relativeVector[0]) - np.arctan2(self.direction[1], self.direction[0]))
+                self.listOfObstacles.append(obstacle(distance, angle))
+    
+    def stop(self):
+        self.isMoving = False

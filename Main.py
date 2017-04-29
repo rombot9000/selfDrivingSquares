@@ -7,8 +7,12 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Polygon
 from matplotlib.animation import FuncAnimation, FFMpegWriter
 
+# ----------------
+# Global variables
+# ----------------
+reactionTime = 0.1
+
 def update(i):
-    reactionTime = 1
     for rectangle in listOfRectangles:
         rectangle.run(reactionTime)
     for j in range(0, numberOfRectangles):
@@ -43,7 +47,8 @@ if __name__ == "__main__":
     plts = []
     trgt = [] 
     setup()
-    anim = FuncAnimation(fig, update, None, interval=100)
+    animationInterval = int( 1000 * reactionTime )
+    anim = FuncAnimation(fig, update, None, interval=animationInterval)
     plt.show()
     
     # Raises error -> use show() for now
