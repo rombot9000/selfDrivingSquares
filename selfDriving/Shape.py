@@ -15,21 +15,30 @@ Obstacle = namedtuple('Obstacle', ['distance', 'angle', 'velocity', 'center'])
 class Shape:
     listOfAllShapes = []
     timeStep        = 0.05
+    
+    def moveAll(timeSpan):
+        t = 0.0
+        while t < (timeSpan - 0.5*Shape.timeStep):
+            for shape in Shape.listOfAllShapes:
+                shape.move()
+            t += Shape.timeStep
+    
     def __init__(self):
         #
         # Append instance of shape to list of shapes
         #
-        self.listOfAllShapes.append(self)
+        Shape.listOfAllShapes.append(self)
         #
         # Set members needed for all shapes
         #
         self.center    = np.array([randint(-100,100),randint(-100,100)])
         self.direction = np.array([randint(-100,100),randint(-100,100)])
         self.direction = self.direction / np.linalg.norm(self.direction)
-        self.velocity  = randint(4,7)
+        self.velocity  = randint(10,15)
         self.edges     = None
         self.calculateEdges()
-        self.target    = np.array([randint(-100,100),randint(-100,100)])#np.array([0,0])#
+        #self.target    = np.array([0,0])
+        self.target   = np.array([randint(-100,100),randint(-100,100)])
         self.trajectory = {}
         for key in dataType:
             self.trajectory[key] = []
@@ -70,7 +79,7 @@ class Shape:
     def checkForObstacles(self):
         self.listOfObstacles = []
         scanningRange = 30
-        for shape in self.listOfAllShapes:
+        for shape in Shape.listOfAllShapes:
             if shape is self:
                 continue
             distance = np.linalg.norm(self.center - shape.center)
@@ -79,6 +88,10 @@ class Shape:
             elif distance < scanningRange:
                 relativeVector = shape.center - self.center
                 angle = (np.arctan2(relativeVector[1], relativeVector[0]) - np.arctan2(self.direction[1], self.direction[0]))
+                while angle > np.pi:
+                    angle -= 2*np.pi
+                while angle < -np.pi:
+                    angle += 2*np.pi
                 #NOTE: for now we cheat by handing over the other objects's position and speed
                 self.listOfObstacles.append(Obstacle(distance, angle, shape.velocity*shape.direction, shape.center))
     

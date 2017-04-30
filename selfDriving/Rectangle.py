@@ -15,16 +15,13 @@ class Rectangle(Shape):
     # -------------------------
     # Main task to for movement
     # -------------------------
-    def run(self, timeSpan):
-        if self.isMoving:
-            self.steer()
-            t = 0.0
-            while t < (timeSpan - 0.5*self.timeStep):
-                self.moveEdges(self.timeStep)
-                self.calculateCenter()
-                self.checkTarget()
-                t += self.timeStep
-                self.checkForObstacles()
+    def move(self):
+        if not self.isMoving:
+            return
+        self.moveEdges(self.timeStep)
+        self.calculateCenter()
+        self.checkTarget()
+        self.checkForObstacles()
         self.addToTrajectory()
     
     # ------------------------------------
@@ -54,10 +51,17 @@ class Rectangle(Shape):
     # Calculate steering angle depending on object and target position
     # ----------------------------------------------------------------
     def steer(self):
+        if not self.isMoving:
+            return
         targetVector = self.target - self.center
         theta = (np.arctan2(targetVector[1], targetVector[0]) - np.arctan2(self.direction[1], self.direction[0]))
+        while theta > np.pi:
+            theta -= 2*np.pi
+        while theta < -np.pi:
+            theta += 2*np.pi
         #check if rectangle has to do a u-turn
         if self.performUTurn and abs(theta) > np.pi/6.0:
+            self.adjustAngleForObstacles()
             return
         elif abs(theta) > np.pi/2.0:
             self.performUTurn = True
@@ -70,17 +74,29 @@ class Rectangle(Shape):
             theta = -np.pi/6.0
         self.steeringAngle = theta
         self.adjustAngleForObstacles()
-        self.rotationMatrix = np.array([[np.cos(theta), -np.sin(theta)],[np.sin(theta), np.cos(theta)]])
     
     def adjustAngleForObstacles(self):
+        nextObstacle = None
+        nextEvent    = 5
+        rotationMatrix = np.array([[np.cos(self.steeringAngle), -np.sin(self.steeringAngle)],[np.sin(self.steeringAngle), np.cos(self.steeringAngle)]])
+        steeringDirection = np.dot(rotationMatrix, self.direction)
         for obstacle in self.listOfObstacles:
-            smallestDistance, projectedTime = self.projectSmallestDistance(obstacle)
-            if smallestDistance < 2.0 * self.radius:
-                print("Possible collision in {} seconds".format(projectedTime))
+            smallestDistance, projectedTime = self.projectSmallestDistance(steeringDirection, obstacle)
+            if smallestDistance < 3.0 * self.radius:
+                if projectedTime < nextEvent:
+                    nextObstacle = obstacle
+                    nextEvent    = projectedTime
+        if nextObstacle is not None:
+            print('Projected collision in {} seconds!'.format(nextEvent))
+            if obstacle.angle > 0:
+                self.steeringAngle = -np.pi/6.0
+            else:
+                self.steeringAngle =  np.pi/6.0
+            self.performUTurn = False
     
-    def projectSmallestDistance(self, obstacle):
+    def projectSmallestDistance(self, direction, obstacle):
         # Relative velocity dV
-        dV = self.velocity * self.direction - obstacle.velocity
+        dV = self.velocity * direction - obstacle.velocity
         dVdV = np.dot(dV, dV)
         # Check if the relative velocity is finite
         if dVdV == 0:
@@ -120,7 +136,8 @@ class Rectangle(Shape):
     
     def calculateEdgeRotation(self, timeSpan, frontEdge, backEdge):
         backEdge += self.velocity*timeSpan*self.direction
-        steeringDirection = np.dot(self.rotationMatrix, self.direction)
+        rotationMatrix = np.array([[np.cos(self.steeringAngle), -np.sin(self.steeringAngle)],[np.sin(self.steeringAngle), np.cos(self.steeringAngle)]])
+        steeringDirection = np.dot(rotationMatrix, self.direction)
         p = np.dot(steeringDirection, frontEdge - backEdge) / np.dot(steeringDirection,steeringDirection)
         q = (self.velocity*timeSpan - 2.0*self.length) * self.velocity*timeSpan / np.dot(steeringDirection,steeringDirection)
         sqrtTerm = np.sqrt(p*p - q)
@@ -130,7 +147,4 @@ class Rectangle(Shape):
         alpha = - p + sqrtTerm
         frontEdge += alpha * steeringDirection
     
-    # --------------
-    # Evasive action
-    # --------------
     

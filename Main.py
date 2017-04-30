@@ -1,6 +1,6 @@
 #!/opt/local/bin/python3.5
 
-from selfDriving.Shape import dataType
+from selfDriving.Shape import dataType, Shape
 from selfDriving.Rectangle import Rectangle
 import numpy as np
 import matplotlib.pyplot as plt
@@ -14,7 +14,8 @@ reactionTime = 0.1
 
 def update(i):
     for rectangle in listOfRectangles:
-        rectangle.run(reactionTime)
+        rectangle.steer()
+    Shape.moveAll(reactionTime)
     for j in range(0, numberOfRectangles):
         rectangle = listOfRectangles[j]
         plgn[j].set_xy([rectangle.edges[0][0], rectangle.edges[0][1], rectangle.edges[1][1], rectangle.edges[1][0]])
@@ -32,7 +33,7 @@ if __name__ == "__main__":
     # Calculate single trajectory
     # ---------------------------
     listOfRectangles = []
-    numberOfRectangles = 4
+    numberOfRectangles = 8
     for i in range(0,numberOfRectangles):
         listOfRectangles.append(Rectangle())
     # ----------------------------
