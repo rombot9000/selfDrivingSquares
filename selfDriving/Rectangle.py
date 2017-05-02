@@ -8,9 +8,12 @@ class Rectangle(Shape):
         self.length     = 9.0
         self.radius     = 0.5*np.sqrt(self.width*self.width + self.length*self.length)
         Shape.__init__(self)
-        self.steeringAngle  = 0.0
-        self.performUTurn   = False
-        self.targetCounter  = 0
+        self.maxAcceleration = 5
+        self.acceleration    = self.maxAcceleration
+        self.airResistance   = 0.04
+        self.steeringAngle   = 0.0
+        self.performUTurn    = False
+        self.targetCounter   = 0
     
     # -------------------------
     # Main task to for movement
@@ -18,6 +21,7 @@ class Rectangle(Shape):
     def move(self):
         if not self.isMoving:
             return
+        self.accelerate(self.timeStep)
         self.moveEdges(self.timeStep)
         self.calculateCenter()
         self.checkTarget()
@@ -73,6 +77,7 @@ class Rectangle(Shape):
         elif theta < -np.pi/6.0:
             theta = -np.pi/6.0
         self.steeringAngle = theta
+        self.acceleration    = self.maxAcceleration
         self.adjustAngleForObstacles()
     
     def adjustAngleForObstacles(self):
@@ -82,12 +87,16 @@ class Rectangle(Shape):
         steeringDirection = np.dot(rotationMatrix, self.direction)
         for obstacle in self.listOfObstacles:
             smallestDistance, projectedTime = self.projectSmallestDistance(steeringDirection, obstacle)
-            if smallestDistance < 3.0 * self.radius:
+            if smallestDistance <= (self.radius + obstacle.radius):
                 if projectedTime < nextEvent:
                     nextObstacle = obstacle
                     nextEvent    = projectedTime
         if nextObstacle is not None:
             print('Projected collision in {} seconds!'.format(nextEvent))
+            if obstacle.distance < 1.5*(self.radius + obstacle.radius):
+                self.acceleration = -self.maxAcceleration
+            elif obstacle.distance < 2*(self.radius + obstacle.radius):
+                self.acceleration = 0
             if obstacle.angle > 0:
                 self.steeringAngle = -np.pi/6.0
             else:
@@ -117,6 +126,10 @@ class Rectangle(Shape):
     # Calculate movement of object for given timeSpan
     # depending on steeringAngle, current velocity, direction, etc
     # ------------------------------------------------------------
+    def accelerate(self, timeStep):
+        # v(t + dt) = v(t) + a*dt - c*v(t)^2*dt
+        self.velocity += (self.acceleration - self.airResistance*self.velocity*self.velocity)*timeStep
+    
     def moveEdges(self, timeSpan):
         if self.steeringAngle > 0:
             self.calculateEdgeRotation(timeSpan, self.edges[0][0], self.edges[1][0])

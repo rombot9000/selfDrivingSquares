@@ -10,7 +10,7 @@ class dataType(Enum):
     steeringEdge   = 3
     target         = 4
 
-Obstacle = namedtuple('Obstacle', ['distance', 'angle', 'velocity', 'center'])
+Obstacle = namedtuple('Obstacle', ['distance', 'angle', 'velocity', 'center', 'radius'])
 
 class Shape:
     listOfAllShapes = []
@@ -34,7 +34,7 @@ class Shape:
         self.center    = np.array([randint(-100,100),randint(-100,100)])
         self.direction = np.array([randint(-100,100),randint(-100,100)])
         self.direction = self.direction / np.linalg.norm(self.direction)
-        self.velocity  = randint(10,15)
+        self.velocity  = 0
         self.edges     = None
         self.calculateEdges()
         #self.target    = np.array([0,0])
@@ -93,7 +93,8 @@ class Shape:
                 while angle < -np.pi:
                     angle += 2*np.pi
                 #NOTE: for now we cheat by handing over the other objects's position and speed
-                self.listOfObstacles.append(Obstacle(distance, angle, shape.velocity*shape.direction, shape.center))
+                if abs(angle) <= np.pi/2:
+                    self.listOfObstacles.append(Obstacle(distance, angle, shape.velocity*shape.direction, shape.center, shape.radius))
     
     def stop(self):
         self.isMoving = False

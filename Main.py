@@ -12,7 +12,8 @@ from matplotlib.animation import FuncAnimation, FFMpegWriter
 # ----------------
 reactionTime = 0.1
 
-def update(i):
+def updatePlot(i):
+    global listOfRectangles
     for rectangle in listOfRectangles:
         rectangle.steer()
     Shape.moveAll(reactionTime)
@@ -20,22 +21,15 @@ def update(i):
         rectangle = listOfRectangles[j]
         plgn[j].set_xy([rectangle.edges[0][0], rectangle.edges[0][1], rectangle.edges[1][1], rectangle.edges[1][0]])
         plts[j][0].set_data(*zip(*rectangle.trajectory[dataType.center]))
-        trgt[j].set_offsets([rectangle.target[0], rectangle.target[1]])
+        if rectangle.isMoving:
+            trgt[j].set_offsets([rectangle.target[0], rectangle.target[1]])
 
-def setup():
-    for rectangle in listOfRectangles:
-        plgn.append(ax.add_patch(Polygon([rectangle.edges[0][0], rectangle.edges[0][1], rectangle.edges[1][1], rectangle.edges[1][0]], closed=True, fill=True, color = rectangle.color)))
-        plts.append(ax.plot(*zip(*rectangle.trajectory[dataType.center]), color=rectangle.color, linestyle='dotted', alpha=0.25))
-        trgt.append(ax.scatter(rectangle.target[0], rectangle.target[1], color=rectangle.color, marker='x'))  
+def setupPlot(rectangle):
+    plgn.append(ax.add_patch(Polygon([rectangle.edges[0][0], rectangle.edges[0][1], rectangle.edges[1][1], rectangle.edges[1][0]], closed=True, fill=True, color = rectangle.color)))
+    plts.append(ax.plot(*zip(*rectangle.trajectory[dataType.center]), color=rectangle.color, linestyle='dotted', alpha=0.25))
+    trgt.append(ax.scatter(rectangle.target[0], rectangle.target[1], color=rectangle.color, marker='x'))  
 
 if __name__ == "__main__":
-    # ---------------------------
-    # Calculate single trajectory
-    # ---------------------------
-    listOfRectangles = []
-    numberOfRectangles = 8
-    for i in range(0,numberOfRectangles):
-        listOfRectangles.append(Rectangle())
     # ----------------------------
     # Show animation of trajectory
     # ----------------------------
@@ -47,9 +41,13 @@ if __name__ == "__main__":
     plgn = []
     plts = []
     trgt = [] 
-    setup()
+    listOfRectangles = []
+    numberOfRectangles = 20
+    for i in range(0,numberOfRectangles):
+        listOfRectangles.append(Rectangle())
+        setupPlot(listOfRectangles[-1])
     animationInterval = int( 1000 * reactionTime )
-    anim = FuncAnimation(fig, update, None, interval=animationInterval)
+    anim = FuncAnimation(fig, updatePlot, None, interval=animationInterval)
     plt.show()
     
     # Raises error -> use show() for now
