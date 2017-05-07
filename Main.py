@@ -4,7 +4,7 @@ from selfDriving.Shape import dataType, Shape
 from selfDriving.Rectangle import Rectangle
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.patches import Polygon
+from matplotlib.patches import Polygon, Circle
 from matplotlib.animation import FuncAnimation, FFMpegWriter
 
 # ----------------
@@ -20,12 +20,14 @@ def updatePlot(i):
     for j in range(0, numberOfRectangles):
         rectangle = listOfRectangles[j]
         plgn[j].set_xy([rectangle.edges[0][0], rectangle.edges[0][1], rectangle.edges[1][1], rectangle.edges[1][0]])
+        circ[j].center = rectangle.center[0], rectangle.center[1] 
         plts[j][0].set_data(*zip(*rectangle.trajectory[dataType.center]))
         if rectangle.isMoving:
             trgt[j].set_offsets([rectangle.target[0], rectangle.target[1]])
 
 def setupPlot(rectangle):
-    plgn.append(ax.add_patch(Polygon([rectangle.edges[0][0], rectangle.edges[0][1], rectangle.edges[1][1], rectangle.edges[1][0]], closed=True, fill=True, color = rectangle.color)))
+    plgn.append(ax.add_patch(Polygon([rectangle.edges[0][0], rectangle.edges[0][1], rectangle.edges[1][1], rectangle.edges[1][0]], closed=True, fill=True, color=rectangle.color)))
+    circ.append(ax.add_patch(Circle(rectangle.center, rectangle.radius, fill=False, color=rectangle.color, linestyle='dotted')))
     plts.append(ax.plot(*zip(*rectangle.trajectory[dataType.center]), color=rectangle.color, linestyle='dotted', alpha=0.25))
     trgt.append(ax.scatter(rectangle.target[0], rectangle.target[1], color=rectangle.color, marker='x'))  
 
@@ -39,10 +41,11 @@ if __name__ == "__main__":
     ax.axis([-150,150,-150,150])
     ax.set_axis_off()
     plgn = []
+    circ = []
     plts = []
     trgt = [] 
     listOfRectangles = []
-    numberOfRectangles = 20
+    numberOfRectangles = 4
     for i in range(0,numberOfRectangles):
         listOfRectangles.append(Rectangle())
         setupPlot(listOfRectangles[-1])

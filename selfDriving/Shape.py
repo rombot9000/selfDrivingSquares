@@ -28,6 +28,7 @@ class Shape:
         # Append instance of shape to list of shapes
         #
         Shape.listOfAllShapes.append(self)
+        self.shapeID = len(Shape.listOfAllShapes)
         #
         # Set members needed for all shapes
         #
@@ -52,7 +53,6 @@ class Shape:
         # Set color of shape
         #
         self.color = '#{:06x}'.format(randint(0, 0xFFFFFF))
-        print(self.color)
 
     
     def addToTrajectory(self):
@@ -66,13 +66,13 @@ class Shape:
     def checkTarget(self):
         distanceToTarget = np.linalg.norm(self.target - self.center)
         if distanceToTarget < self.radius:
-            print("Target position reached!\n")
+            print("SID {}: Target position reached!\n".format(self.shapeID))
             self.target = np.array([randint(-100,100),randint(-100,100)])
             self.trajectory[dataType.target].append(deepcopy(self.target))
             self.targetCounter += 1
     
     def checkForCollisions(self, shape):
-        print('Collision!')
+        print('SID {}: Collision!'.format(self.shapeID))
         shape.stop()
         self.stop()
     

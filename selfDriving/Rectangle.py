@@ -4,13 +4,16 @@ from copy import copy, deepcopy
 
 class Rectangle(Shape):
     def __init__(self):
-        self.width      = 3.0
-        self.length     = 9.0
+        self.width      = 6.0
+        self.length     = 18.0
         self.radius     = 0.5*np.sqrt(self.width*self.width + self.length*self.length)
         Shape.__init__(self)
+        self.maxSteeringAngle = np.pi/4
         self.maxAcceleration = 5
+        self.maxBreak        = 10
         self.acceleration    = self.maxAcceleration
         self.airResistance   = 0.04
+        self.breakResistance = 0.0
         self.steeringAngle   = 0.0
         self.performUTurn    = False
         self.targetCounter   = 0
@@ -64,7 +67,7 @@ class Rectangle(Shape):
         while theta < -np.pi:
             theta += 2*np.pi
         #check if rectangle has to do a u-turn
-        if self.performUTurn and abs(theta) > np.pi/6.0:
+        if self.performUTurn and abs(theta) > self.maxSteeringAngle:
             self.adjustAngleForObstacles()
             return
         elif abs(theta) > np.pi/2.0:
@@ -72,10 +75,10 @@ class Rectangle(Shape):
         else:
             self.performUTurn = False
         #restrict angles to [+30,-30]
-        if theta > np.pi/6.0:
-            theta = np.pi/6.0
-        elif theta < -np.pi/6.0:
-            theta = -np.pi/6.0
+        if theta > self.maxSteeringAngle:
+            theta = self.maxSteeringAngle
+        elif theta < -self.maxSteeringAngle:
+            theta = -self.maxSteeringAngle
         self.steeringAngle = theta
         self.acceleration    = self.maxAcceleration
         self.adjustAngleForObstacles()
@@ -92,15 +95,16 @@ class Rectangle(Shape):
                     nextObstacle = obstacle
                     nextEvent    = projectedTime
         if nextObstacle is not None:
-            print('Projected collision in {} seconds!'.format(nextEvent))
+            print('SID {}: Projected collision in {} seconds!'.format(self.shapeID, nextEvent))
             if obstacle.distance < 1.5*(self.radius + obstacle.radius):
-                self.acceleration = -self.maxAcceleration
+                print("SID {}: Max Break!".format(self.shapeID))
+                self.acceleration = -self.maxBreak
             elif obstacle.distance < 2*(self.radius + obstacle.radius):
                 self.acceleration = 0
             if obstacle.angle > 0:
-                self.steeringAngle = -np.pi/6.0
+                self.steeringAngle = -self.maxSteeringAngle
             else:
-                self.steeringAngle =  np.pi/6.0
+                self.steeringAngle =  self.maxSteeringAngle
             self.performUTurn = False
     
     def projectSmallestDistance(self, direction, obstacle):
