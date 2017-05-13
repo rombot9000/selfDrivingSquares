@@ -53,7 +53,9 @@ class Shape:
         # Set color of shape
         #
         self.color = '#{:06x}'.format(randint(0, 0xFFFFFF))
-
+    
+    def log(self, __VAR_ARGS__):
+        print("SID {}: ".format(self.shapeID), __VAR_ARGS__)
     
     def addToTrajectory(self):
         self.trajectory[dataType.center].append(deepcopy(self.center))
@@ -72,7 +74,7 @@ class Shape:
             self.targetCounter += 1
     
     def checkForCollisions(self, shape):
-        print('SID {}: Collision!'.format(self.shapeID))
+        print('SID {}: Collision with shape {}!'.format(self.shapeID, shape.shapeID))
         shape.stop()
         self.stop()
     
@@ -88,13 +90,13 @@ class Shape:
             elif distance < scanningRange:
                 relativeVector = shape.center - self.center
                 angle = (np.arctan2(relativeVector[1], relativeVector[0]) - np.arctan2(self.direction[1], self.direction[0]))
+                # restrict angles to [-pi,+pi]
                 while angle > np.pi:
                     angle -= 2*np.pi
                 while angle < -np.pi:
                     angle += 2*np.pi
-                #NOTE: for now we cheat by handing over the other objects's position and speed
-                if abs(angle) <= np.pi/2:
-                    self.listOfObstacles.append(Obstacle(distance, angle, shape.velocity*shape.direction, shape.center, shape.radius))
+                # NOTE: for now we cheat by handing over the other objects's position and speed
+                self.listOfObstacles.append(Obstacle(distance, angle, shape.velocity*shape.direction, shape.center, shape.radius))
     
     def stop(self):
         self.isMoving = False

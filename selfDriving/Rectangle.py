@@ -95,15 +95,19 @@ class Rectangle(Shape):
                     nextObstacle = obstacle
                     nextEvent    = projectedTime
         if nextObstacle is not None:
-            print('SID {}: Projected collision in {} seconds!'.format(self.shapeID, nextEvent))
-            if obstacle.distance < 1.5*(self.radius + obstacle.radius):
-                print("SID {}: Max Break!".format(self.shapeID))
-                self.acceleration = -self.maxBreak
-            elif obstacle.distance < 2*(self.radius + obstacle.radius):
-                self.acceleration = 0
+            self.log("Projected collision in {} seconds!".format(nextEvent))
+            if abs(nextObstacle.angle) <= np.pi/2:
+                if obstacle.distance < 1.5*(self.radius + obstacle.radius):
+                    self.log("Max Break!")
+                    self.acceleration = -self.maxBreak
+                elif obstacle.distance < 2*(self.radius + obstacle.radius):
+                    self.log("Zero Acceleration!")
+                    self.acceleration = 0
             if obstacle.angle > 0:
+                self.log("Steer left!")
                 self.steeringAngle = -self.maxSteeringAngle
             else:
+                self.log("Steer right!")
                 self.steeringAngle =  self.maxSteeringAngle
             self.performUTurn = False
     
@@ -122,9 +126,14 @@ class Rectangle(Shape):
         tMin = - np.dot(dV, d0) / dVdV
         if tMin < 0:
             return np.inf, tMin
-        # Return minumum distance
-        dMin = d0 + tMin * dV
-        return np.linalg.norm(dMin), tMin
+        # Minumum distance
+        dMin = np.linalg.norm(d0 + tMin * dV)
+        #If collision is projected, get the collision time
+        combinedRadii = self.radius + obstacle.radius
+        if dMin <= combinedRadii:
+            d0d0 = np.dot(d0,d0)
+            tMin -= np.sqrt(tMin*tMin + (combinedRadii*combinedRadii - d0d0)/dVdV )
+        return dMin, tMin
 
     # ------------------------------------------------------------
     # Calculate movement of object for given timeSpan
