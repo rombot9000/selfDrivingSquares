@@ -68,13 +68,13 @@ class Shape:
     def checkTarget(self):
         distanceToTarget = np.linalg.norm(self.target - self.center)
         if distanceToTarget < self.radius:
-            print("SID {}: Target position reached!\n".format(self.shapeID))
+            self.log("Target position reached!")
             self.target = np.array([randint(-100,100),randint(-100,100)])
             self.trajectory[dataType.target].append(deepcopy(self.target))
             self.targetCounter += 1
     
     def checkForCollisions(self, shape):
-        print('SID {}: Collision with shape {}!'.format(self.shapeID, shape.shapeID))
+        self.log("Collision with shape {}!".format(shape.shapeID))
         shape.stop()
         self.stop()
     

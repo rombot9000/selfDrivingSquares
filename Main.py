@@ -1,11 +1,15 @@
 #!/opt/local/bin/python3.5
 
+# Custom packages
 from selfDriving.Shape import dataType, Shape
 from selfDriving.Rectangle import Rectangle
+# Numerics and plotting
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Polygon, Circle
 from matplotlib.animation import FuncAnimation, FFMpegWriter
+# Parse cmd line options
+import argparse
 
 # ----------------
 # Global variables
@@ -31,7 +35,14 @@ def setupPlot(rectangle):
     plts.append(ax.plot(*zip(*rectangle.trajectory[dataType.center]), color=rectangle.color, linestyle='dotted', alpha=0.25))
     trgt.append(ax.scatter(rectangle.target[0], rectangle.target[1], color=rectangle.color, marker='x'))  
 
-if __name__ == "__main__":
+if __name__ == '__main__':
+    # --------------------
+    # Command line options
+    # --------------------
+    parser = argparse.ArgumentParser(description='Self driving shapes')
+    parser.add_argument('-r', type=int, default=2, help='The number of rectangles to simulate')
+    args = parser.parse_args()
+    numberOfRectangles = args.r
     # ----------------------------
     # Show animation of trajectory
     # ----------------------------
@@ -45,7 +56,6 @@ if __name__ == "__main__":
     plts = []
     trgt = [] 
     listOfRectangles = []
-    numberOfRectangles = 4
     for i in range(0,numberOfRectangles):
         listOfRectangles.append(Rectangle())
         setupPlot(listOfRectangles[-1])
