@@ -23,17 +23,20 @@ def updatePlot(i):
     Shape.moveAll(reactionTime)
     for j in range(0, numberOfRectangles):
         rectangle = listOfRectangles[j]
-        plgn[j].set_xy([rectangle.edges[0][0], rectangle.edges[0][1], rectangle.edges[1][1], rectangle.edges[1][0]])
-        circ[j].center = rectangle.center[0], rectangle.center[1] 
-        plts[j][0].set_data(*zip(*rectangle.trajectory[dataType.center]))
         if rectangle.isMoving:
+            plgn[j].set_xy(rectangle.edges)
+            circ[j].center = rectangle.center[0], rectangle.center[1] 
+            plts[j][0].set_data(*zip(*rectangle.trajectory[dataType.center]))
             trgt[j].set_offsets([rectangle.target[0], rectangle.target[1]])
+        else:
+            plgn[j].set_color(rectangle.color)
+            trgt[j].set_color('#FFFFFF')
 
 def setupPlot(rectangle):
-    plgn.append(ax.add_patch(Polygon([rectangle.edges[0][0], rectangle.edges[0][1], rectangle.edges[1][1], rectangle.edges[1][0]], closed=True, fill=True, color=rectangle.color)))
-    circ.append(ax.add_patch(Circle(rectangle.center, rectangle.radius, fill=False, color=rectangle.color, linestyle='dotted')))
-    plts.append(ax.plot(*zip(*rectangle.trajectory[dataType.center]), color=rectangle.color, linestyle='dotted', alpha=0.25))
-    trgt.append(ax.scatter(rectangle.target[0], rectangle.target[1], color=rectangle.color, marker='x'))  
+    circ.append(ax.add_patch(Circle(rectangle.center, rectangle.radius, fill=False, color=rectangle.color, linestyle='dotted', zorder=1)))
+    plts.append(ax.plot(*zip(*rectangle.trajectory[dataType.center]), color=rectangle.color, linestyle='dotted', alpha=0.25, zorder=1))
+    plgn.append(ax.add_patch(Polygon(rectangle.edges, closed=True, fill=True, color=rectangle.color, zorder=2)))
+    trgt.append(ax.scatter(rectangle.target[0], rectangle.target[1], color=rectangle.color, marker='x', zorder=2))  
 
 if __name__ == '__main__':
     # --------------------

@@ -12,6 +12,8 @@ class dataType(Enum):
 
 Obstacle = namedtuple('Obstacle', ['distance', 'angle', 'velocity', 'center', 'radius'])
 
+greyAsHex = '#A0A0A0'
+
 class Shape:
     listOfAllShapes = []
     timeStep        = 0.05
@@ -20,7 +22,7 @@ class Shape:
         t = 0.0
         while t < (timeSpan - 0.5*Shape.timeStep):
             for shape in Shape.listOfAllShapes:
-                shape.move()
+                if shape.isMoving: shape.move()
             t += Shape.timeStep
     
     def __init__(self):
@@ -62,6 +64,12 @@ class Shape:
         self.trajectory[dataType.edges].append(deepcopy(self.edges))
         self.trajectory[dataType.target].append(deepcopy(self.target))
     
+    # ---------------------------------------------------------
+    # Functions that need to be overloaded in the child classes
+    # ---------------------------------------------------------
+    def calculateEdges(self):
+        return
+    
     # --------------------------------
     # Calculate hitbox, colisions, etc
     # --------------------------------
@@ -73,10 +81,11 @@ class Shape:
             self.trajectory[dataType.target].append(deepcopy(self.target))
             self.targetCounter += 1
     
-    def checkForCollisions(self, shape):
+    def checkForCollision(self, shape):
         self.log("Collision with shape {}!".format(shape.shapeID))
         shape.stop()
         self.stop()
+        return True
     
     def checkForObstacles(self):
         self.listOfObstacles = []
@@ -86,7 +95,8 @@ class Shape:
                 continue
             distance = np.linalg.norm(self.center - shape.center)
             if distance < (self.radius + shape.radius):
-                self.checkForCollisions(shape)
+                if self.checkForCollision(shape):
+                    return
             elif distance < scanningRange:
                 relativeVector = shape.center - self.center
                 angle = (np.arctan2(relativeVector[1], relativeVector[0]) - np.arctan2(self.direction[1], self.direction[0]))
@@ -101,3 +111,5 @@ class Shape:
     def stop(self):
         self.isMoving = False
         self.velocity = 0.0
+        self.color    = greyAsHex
+
