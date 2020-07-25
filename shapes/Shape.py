@@ -8,7 +8,7 @@ class dataType(Enum):
     center         = 1
     edges          = 2
     steeringEdge   = 3
-    target         = 4
+    _target         = 4
     edge_1         = 5
     edge_2         = 6
     edge_3         = 7
@@ -39,77 +39,98 @@ class Shape:
         #
         Shape.__LIST.append(self)
         # public
-        self.shapeID   = len(Shape.__LIST)
-        self.isMoving  = True
-        self.center    = np.array([randint(-100,100),randint(-100,100)])
-        self.edges     = []
-        self.radius    = 0
-        self.color = '#{:06x}'.format(randint(0, 0xFFFFFF))
-        self.target    = np.array([randint(-100,100),randint(-100,100)])
-        self.targetCounter   = 0
-        self.trajectory = {}
-        for key in dataType:
-            self.trajectory[key] = []
+        self.shapeID    = len(Shape.__LIST)
+        self.isMoving   = True
         # protected
+        self._center    = np.array([randint(-100,100),randint(-100,100)])
+        self._edges     = []
+        self._radius    = 0
+        self._color     = '#{:06x}'.format(randint(0, 0xFFFFFF))
+        self._target    = np.array([randint(-100,100),randint(-100,100)])
+        self._targetCounter   = 0
+        self._trajectory = {}
+        for key in dataType:
+            self._trajectory[key] = []
         self._direction = np.array([randint(-100,100),randint(-100,100)])
         self._direction = self._direction / np.linalg.norm(self._direction)
         self._velocity  = 0
         self._listOfObstacles = []
-
+    
         # call init funcs
         self._defineEdges()
         self._calculateRadius()
         self._addToTrajectory()
     
     def stop(self):
+        '''
+        stop shape and set inactive
+        '''
         self.isMoving = False
         self._velocity = 0.0
-        self.color    = greyAsHex
+        self._color    = greyAsHex
+
+    def updatePlotObjects(self):
+        '''
+        Is called to update all matplotlib plot objects
+        Needs to be implemented in child class
+        '''
+        pass
     
     def move(self):
         '''
+        Is called to move shape
         Needs to be define in child class
         '''
-        return
+        pass
     
     def _log(self, __VAR_ARGS__):
+        '''
+        Logger function
+        '''
         print("SID {}: ".format(self.shapeID), __VAR_ARGS__)
     
     def _addToTrajectory(self):
-        self.trajectory[dataType.center].append(deepcopy(self.center))
-        self.trajectory[dataType.edge_1].append(deepcopy(self.edges[0]))
-        self.trajectory[dataType.edge_2].append(deepcopy(self.edges[1]))
-        self.trajectory[dataType.edge_3].append(deepcopy(self.edges[2]))
-        self.trajectory[dataType.edge_4].append(deepcopy(self.edges[3]))
-        self.trajectory[dataType.target].append(deepcopy(self.target))
+        '''
+        Update trajectory of shape
+        '''
+        self._trajectory[dataType.center].append(deepcopy(self._center))
+        self._trajectory[dataType.edge_1].append(deepcopy(self._edges[0]))
+        self._trajectory[dataType.edge_2].append(deepcopy(self._edges[1]))
+        self._trajectory[dataType.edge_3].append(deepcopy(self._edges[2]))
+        self._trajectory[dataType.edge_4].append(deepcopy(self._edges[3]))
+        self._trajectory[dataType._target].append(deepcopy(self._target))
     
     # ---------------------------------------------------------
     # Functions that may to be overloaded in the child classes
     # ---------------------------------------------------------
     def _defineEdges(self):
-        return
+        '''
+        Is called to define edges of the shape
+        Needs to be implemented in child class
+        '''
+        pass
     
     def _calculateRadius(self):
         # Set minimal diameter to 0
         diameter = 0
         # Set radius such that all edges are enclosed
-        for outerCount in range(0, len(self.edges)):
-            for innerCount in range(outerCount+1, len(self.edges)):
-                distanceToEdgeToEdge = np.linalg.norm(self.edges[outerCount] - self.edges[innerCount])
+        for outerCount in range(0, len(self._edges)):
+            for innerCount in range(outerCount+1, len(self._edges)):
+                distanceToEdgeToEdge = np.linalg.norm(self._edges[outerCount] - self._edges[innerCount])
                 if diameter < distanceToEdgeToEdge:
                     diameter = distanceToEdgeToEdge
-        self.radius = 0.5 * diameter
+        self._radius = 0.5 * diameter
     
     # --------------------------------
     # Calculate hitbox, colisions, etc
     # --------------------------------
     def _checkTarget(self):
-        distanceToTarget = np.linalg.norm(self.target - self.center)
-        if distanceToTarget < self.radius:
+        distanceTo_target = np.linalg.norm(self._target - self._center)
+        if distanceTo_target < self._radius:
             self._log("Target position reached!")
-            self.target = np.array([randint(-100,100),randint(-100,100)])
-            self.trajectory[dataType.target].append(deepcopy(self.target))
-            self.targetCounter += 1
+            self._target = np.array([randint(-100,100),randint(-100,100)])
+            self._trajectory[dataType._target].append(deepcopy(self._target))
+            self._targetCounter += 1
     
     def _checkForCollision(self, shape):
         self._log("Collision with shape {}!".format(shape.shapeID))
@@ -119,16 +140,16 @@ class Shape:
     
     def _checkForObstacles(self):
         self._listOfObstacles = []
-        scanningRange = self.radius*5
+        scanningRange = self._radius*5
         for shape in Shape.__LIST:
             if shape is self:
                 continue
-            distance = np.linalg.norm(self.center - shape.center)
-            if distance < (self.radius + shape.radius):
+            distance = np.linalg.norm(self._center - shape._center)
+            if distance < (self._radius + shape._radius):
                 if self._checkForCollision(shape):
                     return
             elif distance < scanningRange:
-                relativeVector = shape.center - self.center
+                relativeVector = shape._center - self._center
                 angle = (np.arctan2(relativeVector[1], relativeVector[0]) - np.arctan2(self._direction[1], self._direction[0]))
                 # restrict angles to [-pi,+pi]
                 while angle > np.pi:
@@ -136,5 +157,4 @@ class Shape:
                 while angle < -np.pi:
                     angle += 2*np.pi
                 # NOTE: for now we cheat by handing over the other objects's position and speed
-                self._listOfObstacles.append(Obstacle(distance, angle, shape._velocity*shape._direction, shape.center, shape.radius))
-
+                self._listOfObstacles.append(Obstacle(distance, angle, shape._velocity*shape._direction, shape._center, shape._radius))

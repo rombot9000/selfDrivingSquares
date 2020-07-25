@@ -5,7 +5,6 @@ from shapes import dataType, Shape, Rectangle
 # Numerics and plotting
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.patches import Polygon, Circle
 from matplotlib.animation import FuncAnimation, FFMpegWriter
 # Parse cmd line options
 import argparse
@@ -20,31 +19,9 @@ def updatePlot(i):
     for rectangle in listOfRectangles:
         rectangle.steer()
     Shape.moveAll(REACTION_TIME)
-    for j in range(0, numberOfRectangles):
-        rectangle = listOfRectangles[j]
+    for rectangle in listOfRectangles:
         if rectangle.isMoving:
-            plgn[j].set_xy(rectangle.edges)
-            circ[j].center = rectangle.center[0], rectangle.center[1] 
-            plts[j][0].set_data(*zip(*rectangle.trajectory[dataType.center]))
-            #plts[j][0].set_data(*zip(*rectangle.trajectory[dataType.edge_1]))
-            #plts[j][1].set_data(*zip(*rectangle.trajectory[dataType.edge_2]))
-            #plts[j][2].set_data(*zip(*rectangle.trajectory[dataType.edge_3]))
-            #plts[j][3].set_data(*zip(*rectangle.trajectory[dataType.edge_4]))            
-            trgt[j].set_offsets([rectangle.target[0], rectangle.target[1]])
-        else:
-            plgn[j].set_color(rectangle.color)
-            trgt[j].set_color('#FFFFFF')
-
-def setupPlot(rectangle):
-    circ.append(ax.add_patch(Circle(rectangle.center, rectangle.radius, fill=False, color=rectangle.color, linestyle='dotted', zorder=1)))
-    plts.append(ax.plot(*zip(*rectangle.trajectory[dataType.center]), color=rectangle.color, linestyle='dotted', alpha=0.25, zorder=1))
-    #plts.append(ax.plot(*zip(*rectangle.trajectory[dataType.edge_1]),
-                        #*zip(*rectangle.trajectory[dataType.edge_2]),
-                        #*zip(*rectangle.trajectory[dataType.edge_3]),
-                        #*zip(*rectangle.trajectory[dataType.edge_4]),
-                        #color=rectangle.color, linestyle='dotted', alpha=0.25, zorder=1))
-    plgn.append(ax.add_patch(Polygon(rectangle.edges, closed=True, fill=True, color=rectangle.color, zorder=2)))
-    trgt.append(ax.scatter(rectangle.target[0], rectangle.target[1], color=rectangle.color, marker='x', zorder=2))  
+            rectangle.updatePlotObjects()
 
 if __name__ == '__main__':
     # --------------------
@@ -58,19 +35,17 @@ if __name__ == '__main__':
     # Show animation of trajectory
     # ----------------------------
     fig = plt.figure()
-    ax  = fig.add_subplot(111)
-    ax.set_aspect(1)
-    ax.axis([-150,150,-150,150])
-    ax.set_axis_off()
+    plot  = fig.add_subplot(111)
+    plot.set_aspect(1)
+    plot.axis([-150,150,-150,150])
+    plot.set_axis_off()
 
-    plgn = []
-    circ = []
-    plts = []
-    trgt = [] 
     listOfRectangles = []
     for i in range(0,numberOfRectangles):
-        listOfRectangles.append(Rectangle())
-        setupPlot(listOfRectangles[-1])
+        rectangle = Rectangle()
+        rectangle.addToPlot(plot)
+        listOfRectangles.append(rectangle)
+
     animationInterval = int( 1000 * REACTION_TIME )
     anim = FuncAnimation(fig, updatePlot, None, interval=animationInterval)
     plt.show()

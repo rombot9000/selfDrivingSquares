@@ -1,13 +1,16 @@
 from .Shape import Shape, dataType
 import numpy as np
 from copy import copy, deepcopy
+from matplotlib.patches import Polygon, Circle
 
 class Rectangle(Shape):
     def __init__(self):
+        # set shape specific members before calling shape init
         self._width      = 12.0
         self._length     = 36.0
         Shape.__init__(self)
-        self._maxSteeringAngle = np.pi/4
+        # set movement specific members
+        self._maxSteeringAngle = np.pi/3
         self._maxAcceleration = 5
         self._maxBreak        = 10
         self._acceleration    = self._maxAcceleration
@@ -16,10 +19,10 @@ class Rectangle(Shape):
         self._steeringAngle   = 0.0
         self._performUTurn    = False
     
-    # -------------------------
-    # Main task to for movement
-    # -------------------------
     def move(self):
+        '''
+        Move shape by timestep
+        '''
         self._accelerate(Shape._TIMESTEP)
         self._moveEdges(Shape._TIMESTEP)
         self._calculateCenter()
@@ -27,44 +30,81 @@ class Rectangle(Shape):
         self._checkForObstacles()
         self._addToTrajectory()
 
-    def setParams(self):
-        pass
-    # ------------------------------------
-    # Overload functions from parent class
-    # ------------------------------------
+    def setParams(self, steeringAngle, acceleration):
+        '''
+        Set movement params
+        '''
+        self._steeringAngle = steeringAngle
+        self._acceleration = acceleration
+
+    def addToPlot(self, plot):
+        '''
+        Add self to plot
+        '''
+        self._circ = plot.add_patch(Circle(self._center, self._radius, fill=False, color=self._color, linestyle='dotted', zorder=1))
+        self._plgn = plot.add_patch(Polygon(self._edges, closed=True, fill=True, color=self._color, zorder=2))
+        self._trgt = plot.scatter(self._target[0], self._target[1], color=self._color, marker='x', zorder=2)
+        
+        self._traj = []
+        self._traj.append(plot.plot(*zip(*self._trajectory[dataType.center]), color=self._color, linestyle='dotted', alpha=0.25, zorder=1))
+        #self.plts.append(plot.plot(*zip(*self._trajectory[dataType.edge_1]),
+                            #*zip(*self._trajectory[dataType.edge_2]),
+                            #*zip(*self._trajectory[dataType.edge_3]),
+                            #*zip(*self._trajectory[dataType.edge_4]),
+                            #color=self._color, linestyle='dotted', alpha=0.25, zorder=1))
+
+
+    def updatePlotObjects(self):
+        '''
+        update plot objects
+        '''
+        self._plgn.set_xy(self._edges)
+        self._circ.center = self._center[0], self._center[1] 
+        self._trgt.set_offsets([self._target[0], self._target[1]])
+        
+        self._traj[0][0].set_data(*zip(*self._trajectory[dataType.center]))
+        #self._traj[0].set_data(*zip(*self._trajectory[dataType.edge_1]))
+        #self._traj[1].set_data(*zip(*self._trajectory[dataType.edge_2]))
+        #self._traj[2].set_data(*zip(*self._trajectory[dataType.edge_3]))
+        #self._traj[3].set_data(*zip(*self._trajectory[dataType.edge_4]))    
+
+    
     def _defineEdges(self):
-        # 0---1
-        # |   |
-        # |   |
-        # |   |
-        # 3---2
+        '''
+        Define rectangular shape
+        0---1
+        |   |
+        |   |
+        |   |
+        3---2
+        '''
         orthogonalDirectionLR = np.array([self._direction[1], -self._direction[0]])
-        self.edges = [None, None,None, None]
-        self.edges[0] = self.center + 0.5*self._length*self._direction - 0.5*self._width*orthogonalDirectionLR
-        self.edges[1] = self.edges[0] + self._width*orthogonalDirectionLR
-        self.edges[3] = self.edges[0] - self._length*self._direction
-        self.edges[2] = self.edges[3] + self._width*orthogonalDirectionLR
+        self._edges = [None, None,None, None]
+        self._edges[0] = self._center + 0.5*self._length*self._direction - 0.5*self._width*orthogonalDirectionLR
+        self._edges[1] = self._edges[0] + self._width*orthogonalDirectionLR
+        self._edges[3] = self._edges[0] - self._length*self._direction
+        self._edges[2] = self._edges[3] + self._width*orthogonalDirectionLR
     
     def _calculateRadius(self):
-        self.radius = 0.5*np.sqrt(self._width*self._width + self._length*self._length)
+        self._radius = 0.5*np.sqrt(self._width*self._width + self._length*self._length)
     
     # ------------------------------------
     # Auxilliary functions for calculating
     # position, direction, etc of object
     # ------------------------------------
     def _calculateCenter(self):
-        self.center = 0.25*(self.edges[0] + self.edges[1] + self.edges[3] + self.edges[2])
+        self._center = 0.25*(self._edges[0] + self._edges[1] + self._edges[3] + self._edges[2])
     
     def _calculateDirection(self):
-        self._direction = 0.5*(self.edges[0] + self.edges[1] - self.edges[3] - self.edges[2])/self._length
+        self._direction = 0.5*(self._edges[0] + self._edges[1] - self._edges[3] - self._edges[2])/self._length
     
-    # ----------------------------------------------------------------
-    # Calculate steering angle depending on object and target position
-    # ----------------------------------------------------------------
     def steer(self):
+        '''
+        Calculate steering angle depending on object and target position
+        '''
         if not self.isMoving:
             return
-        targetVector = self.target - self.center
+        targetVector = self._target - self._center
         theta = (np.arctan2(targetVector[1], targetVector[0]) - np.arctan2(self._direction[1], self._direction[0]))
         while theta > np.pi:
             theta -= 2*np.pi
@@ -94,17 +134,17 @@ class Rectangle(Shape):
         steeringDirection = np.dot(rotationMatrix, self._direction)
         for obstacle in self._listOfObstacles:
             smallestDistance, projectedTime = self._projectSmallestDistance(steeringDirection, obstacle)
-            if smallestDistance <= (self.radius + obstacle.radius):
+            if smallestDistance <= (self._radius + obstacle.radius):
                 if projectedTime < nextEvent:
                     nextObstacle = obstacle
                     nextEvent    = projectedTime
         if nextObstacle is not None:
             self._log("Projected collision in {} seconds!".format(nextEvent))
             #if abs(nextObstacle.angle) <= np.pi/2:
-                #if obstacle.distance < 1.5*(self.radius + obstacle.radius):
+                #if obstacle.distance < 1.5*(self._radius + obstacle.radius):
                     #self._log("Max Break!")
                     #self._acceleration = -self._maxBreak
-                #elif obstacle.distance < 2*(self.radius + obstacle.radius):
+                #elif obstacle.distance < 2*(self._radius + obstacle.radius):
                     #self._log("Zero Acceleration!")
                     #self._acceleration = 0
             if obstacle.angle > 0:
@@ -123,7 +163,7 @@ class Rectangle(Shape):
         if dVdV == 0:
             return np.inf, np.inf
         # Current distance vector
-        d0 = self.center - obstacle.center
+        d0 = self._center - obstacle.center
         # Getting minimum of distance as a function of time yields the following:
         # t_min = dV*d0 / |dV|^2
         # Check if t_min > 0
@@ -133,27 +173,26 @@ class Rectangle(Shape):
         # Minumum distance
         dMin = np.linalg.norm(d0 + tMin * dV)
         #If collision is projected, get the collision time
-        combinedRadii = self.radius + obstacle.radius
+        combinedRadii = self._radius + obstacle.radius
         if dMin <= combinedRadii:
             d0d0 = np.dot(d0,d0)
             tMin -= np.sqrt(tMin*tMin + (combinedRadii*combinedRadii - d0d0)/dVdV )
         return dMin, tMin
     
-    #
-    # Check if one of the edges of the input shape is within self
-    #
     def _checkForCollision(self, shape):
-        #
+        '''
+        Check if one of the edges of the input shape is within self
+        '''
         # Prepare constants for Collision detection
-        #
-        l = self.edges[0] - self.edges[3]
-        w = self.edges[2] - self.edges[3]
+        l = self._edges[0] - self._edges[3]
+        w = self._edges[2] - self._edges[3]
         l2l1        = l[1]/l[0]
         denominator = w[1] - w[0] * l2l1
+        # check all edges
         for edge in shape.edges:
-            if np.linalg.norm(edge - self.center) > self.radius:
+            if np.linalg.norm(edge - self._center) > self._radius:
                 continue
-            x = edge - self.edges[3]
+            x = edge - self._edges[3]
             s = (x[1] - x[0] * l2l1)/denominator
             if (s>1) or (s<0):
                 continue
@@ -165,29 +204,29 @@ class Rectangle(Shape):
             return True
         return False
 
-    # ------------------------------------------------------------
-    # Calculate movement of object for given timeSpan
-    # depending on steeringAngle, current velocity, direction, etc
-    # ------------------------------------------------------------
     def _accelerate(self, timeStep):
-        # v(t + dt) = v(t) + a*dt - c*v(t)^2*dt
+        '''
+        Calculate movement of object for given timeSpan
+        depending on steeringAngle, current velocity, direction, etc
+        v(t + dt) = v(t) + a*dt - c*v(t)^2*dt
+        '''
         self._velocity += (self._acceleration - self._airResistance*self._velocity*self._velocity)*timeStep
     
     def _moveEdges(self, timeSpan):
         if self._steeringAngle > 0:
-            self._calculateEdgeRotation(timeSpan, self.edges[0], self.edges[3])
+            self._calculateEdgeRotation(timeSpan, self._edges[0], self._edges[3])
             #Calculate remaining edges
-            self._direction   = (self.edges[0] - self.edges[3])/self._length
+            self._direction   = (self._edges[0] - self._edges[3])/self._length
             orthogonalDirectionLR = np.array([self._direction[1], -self._direction[0]])
-            self.edges[1] = self.edges[0] + self._width*orthogonalDirectionLR
-            self.edges[2] = self.edges[3] + self._width*orthogonalDirectionLR
+            self._edges[1] = self._edges[0] + self._width*orthogonalDirectionLR
+            self._edges[2] = self._edges[3] + self._width*orthogonalDirectionLR
         else:
-            self._calculateEdgeRotation(timeSpan, self.edges[1], self.edges[2])
+            self._calculateEdgeRotation(timeSpan, self._edges[1], self._edges[2])
             ##Calculate remaining edges
-            self._direction   = (self.edges[1] - self.edges[2])/self._length
+            self._direction   = (self._edges[1] - self._edges[2])/self._length
             orthogonalDirectionRL = np.array([-self._direction[1], self._direction[0]])
-            self.edges[0] = self.edges[1] + self._width*orthogonalDirectionRL
-            self.edges[3] = self.edges[2] + self._width*orthogonalDirectionRL
+            self._edges[0] = self._edges[1] + self._width*orthogonalDirectionRL
+            self._edges[3] = self._edges[2] + self._width*orthogonalDirectionRL
             
     
     def _calculateEdgeRotation(self, timeSpan, frontEdge, backEdge):
