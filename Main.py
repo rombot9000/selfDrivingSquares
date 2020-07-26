@@ -20,7 +20,7 @@ def updatePlot(i):
         rectangle.steer()
     Shape.moveAll(REACTION_TIME)
     for rectangle in listOfRectangles:
-        if rectangle.isMoving:
+        if rectangle.isActive:
             rectangle.updatePlotObjects()
 
 if __name__ == '__main__':

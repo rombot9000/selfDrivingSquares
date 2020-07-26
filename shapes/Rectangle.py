@@ -17,14 +17,16 @@ class Rectangle(Shape):
         self._airResistance   = 0.04
         self._breakResistance = 0.0
         self._steeringAngle   = 0.0
+        self._movingAngle     = 0.0
         self._performUTurn    = False
     
-    def move(self):
+    def move(self, timestep : int):
         '''
         Move shape by timestep
         '''
-        self._accelerate(Shape._TIMESTEP)
-        self._moveEdges(Shape._TIMESTEP)
+        self._accelerate(timestep)
+        self._rotateMovingAngle()
+        self._moveEdges(timestep)
         self._calculateCenter()
         self._checkTarget()
         self._checkForObstacles()
@@ -102,7 +104,7 @@ class Rectangle(Shape):
         '''
         Calculate steering angle depending on object and target position
         '''
-        if not self.isMoving:
+        if not self.isActive:
             return
         targetVector = self._target - self._center
         theta = (np.arctan2(targetVector[1], targetVector[0]) - np.arctan2(self._direction[1], self._direction[0]))
@@ -130,7 +132,7 @@ class Rectangle(Shape):
     def _adjustAngleForObstacles(self):
         nextObstacle = None
         nextEvent    = 5
-        rotationMatrix = np.array([[np.cos(self._steeringAngle), -np.sin(self._steeringAngle)],[np.sin(self._steeringAngle), np.cos(self._steeringAngle)]])
+        rotationMatrix = np.array([[np.cos(self._movingAngle), -np.sin(self._movingAngle)],[np.sin(self._movingAngle), np.cos(self._movingAngle)]])
         steeringDirection = np.dot(rotationMatrix, self._direction)
         for obstacle in self._listOfObstacles:
             smallestDistance, projectedTime = self._projectSmallestDistance(steeringDirection, obstacle)
@@ -189,7 +191,7 @@ class Rectangle(Shape):
         l2l1        = l[1]/l[0]
         denominator = w[1] - w[0] * l2l1
         # check all edges
-        for edge in shape.edges:
+        for edge in shape._edges:
             if np.linalg.norm(edge - self._center) > self._radius:
                 continue
             x = edge - self._edges[3]
@@ -206,22 +208,28 @@ class Rectangle(Shape):
 
     def _accelerate(self, timeStep):
         '''
-        Calculate movement of object for given timeSpan
+        Calculate movement of object for given timespan
         depending on steeringAngle, current velocity, direction, etc
         v(t + dt) = v(t) + a*dt - c*v(t)^2*dt
         '''
         self._velocity += (self._acceleration - self._airResistance*self._velocity*self._velocity)*timeStep
+
+    def _rotateMovingAngle(self):
+        if self._movingAngle > self._steeringAngle:
+            self._movingAngle -= np.pi/10
+        elif self._movingAngle < self._steeringAngle:
+            self._movingAngle += np.pi/10
     
-    def _moveEdges(self, timeSpan):
-        if self._steeringAngle > 0:
-            self._calculateEdgeRotation(timeSpan, self._edges[0], self._edges[3])
+    def _moveEdges(self, timespan):
+        if self._movingAngle > 0:
+            self._calculateEdgeRotation(timespan, self._edges[0], self._edges[3])
             #Calculate remaining edges
             self._direction   = (self._edges[0] - self._edges[3])/self._length
             orthogonalDirectionLR = np.array([self._direction[1], -self._direction[0]])
             self._edges[1] = self._edges[0] + self._width*orthogonalDirectionLR
             self._edges[2] = self._edges[3] + self._width*orthogonalDirectionLR
         else:
-            self._calculateEdgeRotation(timeSpan, self._edges[1], self._edges[2])
+            self._calculateEdgeRotation(timespan, self._edges[1], self._edges[2])
             ##Calculate remaining edges
             self._direction   = (self._edges[1] - self._edges[2])/self._length
             orthogonalDirectionRL = np.array([-self._direction[1], self._direction[0]])
@@ -229,12 +237,12 @@ class Rectangle(Shape):
             self._edges[3] = self._edges[2] + self._width*orthogonalDirectionRL
             
     
-    def _calculateEdgeRotation(self, timeSpan, frontEdge, backEdge):
-        backEdge += self._velocity*timeSpan*self._direction
-        rotationMatrix = np.array([[np.cos(self._steeringAngle), -np.sin(self._steeringAngle)],[np.sin(self._steeringAngle), np.cos(self._steeringAngle)]])
+    def _calculateEdgeRotation(self, timespan, frontEdge, backEdge):
+        backEdge += self._velocity*timespan*self._direction
+        rotationMatrix = np.array([[np.cos(self._movingAngle), -np.sin(self._movingAngle)],[np.sin(self._movingAngle), np.cos(self._movingAngle)]])
         steeringDirection = np.dot(rotationMatrix, self._direction)
         p = np.dot(steeringDirection, frontEdge - backEdge) / np.dot(steeringDirection,steeringDirection)
-        q = (self._velocity*timeSpan - 2.0*self._length) * self._velocity*timeSpan / np.dot(steeringDirection,steeringDirection)
+        q = (self._velocity*timespan - 2.0*self._length) * self._velocity*timespan / np.dot(steeringDirection,steeringDirection)
         sqrtTerm = np.sqrt(p*p - q)
         if sqrtTerm < 0:
             print(sqrtTerm)

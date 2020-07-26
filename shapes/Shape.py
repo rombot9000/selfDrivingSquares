@@ -23,14 +23,17 @@ class Shape:
     _TIMESTEP = 0.05
     
     @staticmethod
-    def moveAll(timeSpan):
+    def moveAll(timespan):
         '''
         Iterate move method for all shapes for given period
         '''
         t = 0.0
-        while t < (timeSpan - 0.5*Shape._TIMESTEP):
-            for shape in Shape.__LIST:
-                if shape.isMoving: shape.move()
+        activeShapes = [x for x in Shape.__LIST if x.isActive]
+        while t < (timespan - 0.5*Shape._TIMESTEP):
+            # move all shapes
+            for shape in activeShapes:
+                shape.move(Shape._TIMESTEP)
+            # increase time
             t += Shape._TIMESTEP
     
     def __init__(self):
@@ -40,7 +43,7 @@ class Shape:
         Shape.__LIST.append(self)
         # public
         self.shapeID    = len(Shape.__LIST)
-        self.isMoving   = True
+        self.isActive   = True
         # protected
         self._center    = np.array([randint(-100,100),randint(-100,100)])
         self._edges     = []
@@ -65,7 +68,7 @@ class Shape:
         '''
         stop shape and set inactive
         '''
-        self.isMoving = False
+        self.isActive = False
         self._velocity = 0.0
         self._color    = greyAsHex
 
