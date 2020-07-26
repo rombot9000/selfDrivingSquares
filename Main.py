@@ -2,6 +2,7 @@
 
 # Custom packages
 from shapes import dataType, Shape, Rectangle
+from drivers import Conditional
 # Numerics and plotting
 import numpy as np
 import matplotlib.pyplot as plt
@@ -15,13 +16,10 @@ import argparse
 REACTION_TIME = 0.1
 
 def updatePlot(i):
-    global listOfRectangles
-    for rectangle in listOfRectangles:
-        rectangle.steer()
+    global listOfRectangles, listOfDrivers
+    for driver in listOfDrivers:
+        driver.steer()
     Shape.moveAll(REACTION_TIME)
-    for rectangle in listOfRectangles:
-        if rectangle.isActive:
-            rectangle.updatePlotObjects()
 
 if __name__ == '__main__':
     # --------------------
@@ -41,10 +39,16 @@ if __name__ == '__main__':
     plot.set_axis_off()
 
     listOfRectangles = []
+    listOfDrivers = []
     for i in range(0,numberOfRectangles):
         rectangle = Rectangle()
         rectangle.addToPlot(plot)
         listOfRectangles.append(rectangle)
+
+        driver = Conditional()
+        driver.setShape(rectangle)
+        driver.addToPlot(plot)
+        listOfDrivers.append(driver)
 
     animationInterval = int( 1000 * REACTION_TIME )
     anim = FuncAnimation(fig, updatePlot, None, interval=animationInterval)

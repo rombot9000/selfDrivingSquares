@@ -8,7 +8,7 @@ class Rectangle(Shape):
         # set shape specific members before calling shape init
         self._width      = 12.0
         self._length     = 36.0
-        Shape.__init__(self)
+        super().__init__()
         # set movement specific members
         self._maxSteeringAngle = np.pi/3
         self._maxAcceleration = 5
@@ -18,26 +18,39 @@ class Rectangle(Shape):
         self._breakResistance = 0.0
         self._steeringAngle   = 0.0
         self._movingAngle     = 0.0
-        self._performUTurn    = False
     
     def move(self, timestep : int):
         '''
         Move shape by timestep
         '''
-        self._accelerate(timestep)
         self._rotateMovingAngle()
+        self._accelerate(timestep)
         self._moveEdges(timestep)
         self._calculateCenter()
-        self._checkTarget()
-        self._checkForObstacles()
         self._addToTrajectory()
+        self._checkForObstacles()
+    
+    def deactivate(self):
+        self._acceleration = 0
+        super().deactivate()
 
     def setParams(self, steeringAngle, acceleration):
         '''
         Set movement params
         '''
+        # restric and set angle
+        if steeringAngle > self._maxSteeringAngle:
+            steeringAngle = self._maxSteeringAngle
+        elif steeringAngle < -self._maxSteeringAngle:
+            steeringAngle = -self._maxSteeringAngle
         self._steeringAngle = steeringAngle
-        self._acceleration = acceleration
+
+        # restrict and set acceleration
+        if acceleration > 1:
+            acceleration = 1
+        if acceleration < -1:
+            acceleration = -1
+        self._acceleration = acceleration * self._maxAcceleration
 
     def addToPlot(self, plot):
         '''
@@ -45,8 +58,6 @@ class Rectangle(Shape):
         '''
         self._circ = plot.add_patch(Circle(self._center, self._radius, fill=False, color=self._color, linestyle='dotted', zorder=1))
         self._plgn = plot.add_patch(Polygon(self._edges, closed=True, fill=True, color=self._color, zorder=2))
-        self._trgt = plot.scatter(self._target[0], self._target[1], color=self._color, marker='x', zorder=2)
-        
         self._traj = []
         self._traj.append(plot.plot(*zip(*self._trajectory[dataType.center]), color=self._color, linestyle='dotted', alpha=0.25, zorder=1))
         #self.plts.append(plot.plot(*zip(*self._trajectory[dataType.edge_1]),
@@ -55,22 +66,21 @@ class Rectangle(Shape):
                             #*zip(*self._trajectory[dataType.edge_4]),
                             #color=self._color, linestyle='dotted', alpha=0.25, zorder=1))
 
-
     def updatePlotObjects(self):
         '''
         update plot objects
         '''
         self._plgn.set_xy(self._edges)
-        self._circ.center = self._center[0], self._center[1] 
-        self._trgt.set_offsets([self._target[0], self._target[1]])
-        
+        self._circ.center = self._center[0], self._center[1]         
         self._traj[0][0].set_data(*zip(*self._trajectory[dataType.center]))
         #self._traj[0].set_data(*zip(*self._trajectory[dataType.edge_1]))
         #self._traj[1].set_data(*zip(*self._trajectory[dataType.edge_2]))
         #self._traj[2].set_data(*zip(*self._trajectory[dataType.edge_3]))
-        #self._traj[3].set_data(*zip(*self._trajectory[dataType.edge_4]))    
+        #self._traj[3].set_data(*zip(*self._trajectory[dataType.edge_4]))
 
-    
+    def updateColor(self):
+        self._plgn.set_color(self._color)
+
     def _defineEdges(self):
         '''
         Define rectangular shape
@@ -100,87 +110,6 @@ class Rectangle(Shape):
     def _calculateDirection(self):
         self._direction = 0.5*(self._edges[0] + self._edges[1] - self._edges[3] - self._edges[2])/self._length
     
-    def steer(self):
-        '''
-        Calculate steering angle depending on object and target position
-        '''
-        if not self.isActive:
-            return
-        targetVector = self._target - self._center
-        theta = (np.arctan2(targetVector[1], targetVector[0]) - np.arctan2(self._direction[1], self._direction[0]))
-        while theta > np.pi:
-            theta -= 2*np.pi
-        while theta < -np.pi:
-            theta += 2*np.pi
-        #check if rectangle has to do a u-turn
-        if self._performUTurn and abs(theta) > self._maxSteeringAngle:
-            self._adjustAngleForObstacles()
-            return
-        elif abs(theta) > np.pi/2.0:
-            self._performUTurn = True
-        else:
-            self._performUTurn = False
-        #restrict angles to [+30,-30]
-        if theta > self._maxSteeringAngle:
-            theta = self._maxSteeringAngle
-        elif theta < -self._maxSteeringAngle:
-            theta = -self._maxSteeringAngle
-        self._steeringAngle = theta
-        self._acceleration    = self._maxAcceleration
-        self._adjustAngleForObstacles()
-    
-    def _adjustAngleForObstacles(self):
-        nextObstacle = None
-        nextEvent    = 5
-        rotationMatrix = np.array([[np.cos(self._movingAngle), -np.sin(self._movingAngle)],[np.sin(self._movingAngle), np.cos(self._movingAngle)]])
-        steeringDirection = np.dot(rotationMatrix, self._direction)
-        for obstacle in self._listOfObstacles:
-            smallestDistance, projectedTime = self._projectSmallestDistance(steeringDirection, obstacle)
-            if smallestDistance <= (self._radius + obstacle.radius):
-                if projectedTime < nextEvent:
-                    nextObstacle = obstacle
-                    nextEvent    = projectedTime
-        if nextObstacle is not None:
-            self._log("Projected collision in {} seconds!".format(nextEvent))
-            #if abs(nextObstacle.angle) <= np.pi/2:
-                #if obstacle.distance < 1.5*(self._radius + obstacle.radius):
-                    #self._log("Max Break!")
-                    #self._acceleration = -self._maxBreak
-                #elif obstacle.distance < 2*(self._radius + obstacle.radius):
-                    #self._log("Zero Acceleration!")
-                    #self._acceleration = 0
-            if obstacle.angle > 0:
-                self._log("Steer left!")
-                self._steeringAngle = -self._maxSteeringAngle
-            else:
-                self._log("Steer right!")
-                self._steeringAngle =  self._maxSteeringAngle
-            self._performUTurn = False
-    
-    def _projectSmallestDistance(self, direction, obstacle):
-        # Relative velocity dV
-        dV = self._velocity * direction - obstacle.velocity
-        dVdV = np.dot(dV, dV)
-        # Check if the relative velocity is finite
-        if dVdV == 0:
-            return np.inf, np.inf
-        # Current distance vector
-        d0 = self._center - obstacle.center
-        # Getting minimum of distance as a function of time yields the following:
-        # t_min = dV*d0 / |dV|^2
-        # Check if t_min > 0
-        tMin = - np.dot(dV, d0) / dVdV
-        if tMin < 0:
-            return np.inf, tMin
-        # Minumum distance
-        dMin = np.linalg.norm(d0 + tMin * dV)
-        #If collision is projected, get the collision time
-        combinedRadii = self._radius + obstacle.radius
-        if dMin <= combinedRadii:
-            d0d0 = np.dot(d0,d0)
-            tMin -= np.sqrt(tMin*tMin + (combinedRadii*combinedRadii - d0d0)/dVdV )
-        return dMin, tMin
-    
     def _checkForCollision(self, shape):
         '''
         Check if one of the edges of the input shape is within self
@@ -202,17 +131,17 @@ class Rectangle(Shape):
             if r>l[0] or r<0:
                 continue
             self._log("Collision with shape {}!".format(shape.shapeID))
-            self.stop()
             return True
         return False
 
-    def _accelerate(self, timeStep):
+    def _accelerate(self, timestep):
         '''
         Calculate movement of object for given timespan
         depending on steeringAngle, current velocity, direction, etc
         v(t + dt) = v(t) + a*dt - c*v(t)^2*dt
         '''
-        self._velocity += (self._acceleration - self._airResistance*self._velocity*self._velocity)*timeStep
+        self._velocity += (self._acceleration - self._airResistance*self._velocity*self._velocity)*timestep
+        if self._velocity < 0: self._velocity = 0
 
     def _rotateMovingAngle(self):
         if self._movingAngle > self._steeringAngle:

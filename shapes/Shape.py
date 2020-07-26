@@ -35,6 +35,8 @@ class Shape:
                 shape.move(Shape._TIMESTEP)
             # increase time
             t += Shape._TIMESTEP
+        for shape in activeShapes:
+            shape.updatePlotObjects()
     
     def __init__(self):
         #
@@ -45,12 +47,10 @@ class Shape:
         self.shapeID    = len(Shape.__LIST)
         self.isActive   = True
         # protected
-        self._center    = np.array([randint(-100,100),randint(-100,100)])
         self._edges     = []
         self._radius    = 0
+        self._center    = np.array([0,0])
         self._color     = '#{:06x}'.format(randint(0, 0xFFFFFF))
-        self._target    = np.array([randint(-100,100),randint(-100,100)])
-        self._targetCounter   = 0
         self._trajectory = {}
         for key in dataType:
             self._trajectory[key] = []
@@ -62,19 +62,34 @@ class Shape:
         # call init funcs
         self._defineEdges()
         self._calculateRadius()
+        self.__setCenter()
+        self._defineEdges()
         self._addToTrajectory()
     
-    def stop(self):
+    def __setCenter(self):
+        while len([x for x in Shape.__LIST if x is not self and self.doOverlapp(x)]) > 0:
+            print("reset center")
+            self._center = np.array([randint(-100,100),randint(-100,100)])
+    
+    def deactivate(self):
         '''
-        stop shape and set inactive
+        deactivate shape and set inactive
         '''
         self.isActive = False
         self._velocity = 0.0
         self._color    = greyAsHex
+        self.updateColor()
+        self.updatePlotObjects()
 
     def updatePlotObjects(self):
         '''
         Is called to update all matplotlib plot objects
+        Needs to be implemented in child class
+        '''
+        pass
+
+    def updateColor(self):
+        '''
         Needs to be implemented in child class
         '''
         pass
@@ -101,7 +116,6 @@ class Shape:
         self._trajectory[dataType.edge_2].append(deepcopy(self._edges[1]))
         self._trajectory[dataType.edge_3].append(deepcopy(self._edges[2]))
         self._trajectory[dataType.edge_4].append(deepcopy(self._edges[3]))
-        self._trajectory[dataType._target].append(deepcopy(self._target))
     
     # ---------------------------------------------------------
     # Functions that may to be overloaded in the child classes
@@ -127,31 +141,35 @@ class Shape:
     # --------------------------------
     # Calculate hitbox, colisions, etc
     # --------------------------------
-    def _checkTarget(self):
-        distanceTo_target = np.linalg.norm(self._target - self._center)
-        if distanceTo_target < self._radius:
-            self._log("Target position reached!")
-            self._target = np.array([randint(-100,100),randint(-100,100)])
-            self._trajectory[dataType._target].append(deepcopy(self._target))
-            self._targetCounter += 1
+    def isInRadius(self, position):
+        return np.linalg.norm(self._center - position) < self._radius
+    
+    def doOverlapp(self, shape):
+        return np.linalg.norm(self._center - shape._center) < (self._radius + shape._radius)
     
     def _checkForCollision(self, shape):
         self._log("Collision with shape {}!".format(shape.shapeID))
-        shape.stop()
-        self.stop()
         return True
     
     def _checkForObstacles(self):
         self._listOfObstacles = []
         scanningRange = self._radius*5
         for shape in Shape.__LIST:
-            if shape is self:
-                continue
+            # do not handle self
+            if shape is self: continue
+            
+            # calc current distance
             distance = np.linalg.norm(self._center - shape._center)
+
+            # check for colisions
             if distance < (self._radius + shape._radius):
                 if self._checkForCollision(shape):
+                    shape.deactivate()
+                    self.deactivate()
                     return
-            elif distance < scanningRange:
+            
+            # set obstacle list
+            if distance < scanningRange:
                 relativeVector = shape._center - self._center
                 angle = (np.arctan2(relativeVector[1], relativeVector[0]) - np.arctan2(self._direction[1], self._direction[0]))
                 # restrict angles to [-pi,+pi]
